@@ -21,6 +21,11 @@ export type Message = {
   role: 'user' | 'assistant';
   suggestions?: string[];
   sources?: Document[];
+  youtubeMeta?: {
+    title: string;
+    thumbnail: string;
+  };
+  youtubeTranscript?: string;
 };
 
 export interface File {
@@ -354,8 +359,9 @@ const ChatWindow = ({ id }: { id?: string }) => {
     }
   }, [isMessagesLoaded, isConfigReady]);
 
+  // Accepts string or object for YouTube video support
   const sendMessage = async (
-    message: string,
+    message: string | { content: string; youtubeMeta?: { title: string; thumbnail: string }; youtubeTranscript?: string },
     messageId?: string,
     rewrite = false,
   ) => {
@@ -374,16 +380,32 @@ const ChatWindow = ({ id }: { id?: string }) => {
 
     messageId = messageId ?? crypto.randomBytes(7).toString('hex');
 
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      {
-        content: message,
-        messageId: messageId,
-        chatId: chatId!,
-        role: 'user',
-        createdAt: new Date(),
-      },
-    ]);
+    // Support rich YouTube message
+    if (typeof message === 'object') {
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        {
+          content: message.content,
+          messageId: messageId,
+          chatId: chatId!,
+          role: 'user',
+          createdAt: new Date(),
+          youtubeMeta: message.youtubeMeta,
+          youtubeTranscript: message.youtubeTranscript,
+        },
+      ]);
+    } else {
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        {
+          content: message,
+          messageId: messageId,
+          chatId: chatId!,
+          role: 'user',
+          createdAt: new Date(),
+        },
+      ]);
+    }
 
     const messageHandler = async (data: any) => {
       if (data.type === 'error') {
@@ -444,7 +466,10 @@ const ChatWindow = ({ id }: { id?: string }) => {
       if (data.type === 'messageEnd') {
         setChatHistory((prevHistory) => [
           ...prevHistory,
-          ['human', message],
+          [
+            'human',
+            typeof message === 'object' ? message.content : message,
+          ],
           ['assistant', recievedMessage],
         ]);
 

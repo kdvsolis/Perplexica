@@ -18,7 +18,7 @@ const Chat = ({
   setFiles,
 }: {
   messages: Message[];
-  sendMessage: (message: string) => void;
+  sendMessage: (message: string | { content: string; youtubeMeta?: { title: string; thumbnail: string }; youtubeTranscript?: string }) => void;
   loading: boolean;
   messageAppeared: boolean;
   rewrite: (messageId: string) => void;

@@ -15,7 +15,15 @@ const MessageInput = ({
   files,
   setFiles,
 }: {
-  sendMessage: (message: string) => void;
+  sendMessage: (
+    message:
+      | string
+      | {
+          content: string;
+          youtubeMeta?: { title: string; thumbnail: string };
+          youtubeTranscript?: string;
+        }
+  ) => void;
   loading: boolean;
   fileIds: string[];
   setFileIds: (fileIds: string[]) => void;
@@ -59,19 +67,50 @@ const MessageInput = ({
     };
   }, []);
 
+  // --- YouTube URL detection and transcript fetch on submit ---
+  const handleSend = async () => {
+    const ytRegex = /(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/i;
+    const match = ytRegex.exec(message);
+    if (match) {
+      // Call backend API to get transcript and meta
+      try {
+        const res = await fetch('/api/youtube-transcript', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: match[0] }),
+        });
+        const data = await res.json();
+        if (data.transcript && data.title && data.thumbnail) {
+          // Send a message with YouTube meta for rich bubble
+          sendMessage({
+            content: `Summarize this YouTube video: ${match[0]}\n\nTranscript:\n${data.transcript}`,
+            youtubeMeta: { title: data.title, thumbnail: data.thumbnail },
+            youtubeTranscript: data.transcript,
+          });
+        } else {
+          sendMessage({ content: `Sorry, I couldn't fetch the transcript for this YouTube video: ${match[0]}` });
+        }
+      } catch {
+        sendMessage({ content: `Sorry, there was an error fetching the transcript for this YouTube video: ${match[0]}` });
+      }
+      setMessage('');
+      return;
+    }
+    sendMessage({ content: message });
+    setMessage('');
+  };
+
   return (
     <form
       onSubmit={(e) => {
         if (loading) return;
         e.preventDefault();
-        sendMessage(message);
-        setMessage('');
+        handleSend();
       }}
       onKeyDown={(e) => {
         if (e.key === 'Enter' && !e.shiftKey && !loading) {
           e.preventDefault();
-          sendMessage(message);
-          setMessage('');
+          handleSend();
         }
       }}
       className={cn(
