@@ -630,6 +630,8 @@ const ChatWindow = ({ id }: { id?: string }) => {
               setFileIds={setFileIds}
               files={files}
               setFiles={setFiles}
+              focusMode={focusMode}
+              setFocusMode={setFocusMode}
             />
           </>
         ) : (

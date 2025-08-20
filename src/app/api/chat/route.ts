@@ -195,6 +195,32 @@ export const POST = async (req: Request) => {
       );
     }
 
+    // --- Patch: If YouTube link detected, fetch transcript and inject as a source ---
+    const ytRegex = /(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/i;
+    const ytMatch = message.content.match(ytRegex);
+    let injectedSources = [];
+    if (ytMatch) {
+      try {
+        // Dynamically import the transcript util to avoid circular deps
+        const { getYoutubeTranscript } = await import('@/lib/youtubeTranscript');
+        const ytUrl = ytMatch[0];
+        const transcriptResult = await getYoutubeTranscript(ytUrl);
+        if (transcriptResult && transcriptResult.transcript) {
+          injectedSources.push({
+            pageContent: transcriptResult.transcript,
+            metadata: {
+              transcript: transcriptResult.transcript,
+              title: transcriptResult.title || ytUrl,
+              url: ytUrl,
+              thumbnail: transcriptResult.thumbnail || '',
+            },
+          });
+        }
+      } catch (err) {
+        console.error('Failed to fetch YouTube transcript:', err);
+      }
+    }
+
     const [chatModelProviders, embeddingModelProviders] = await Promise.all([
       getAvailableChatModelProviders(),
       getAvailableEmbeddingModelProviders(),
@@ -272,15 +298,32 @@ export const POST = async (req: Request) => {
       );
     }
 
-    const stream = await handler.searchAndAnswer(
-      message.content,
-      history,
-      llm,
-      embedding,
-      body.optimizationMode,
-      body.files,
-      body.systemInstructions,
-    );
+    // If transcript was injected, add it to files array as a pseudo-file
+    let stream;
+    if (injectedSources.length > 0) {
+      // Convert transcript to a pseudo-file string (JSON) and add to files array
+      const pseudoFile = JSON.stringify(injectedSources[0]);
+      stream = await handler.searchAndAnswer(
+        message.content,
+        history,
+        llm,
+        embedding,
+        body.optimizationMode,
+        [pseudoFile],
+        body.systemInstructions,
+      );
+    } else {
+      // Default: original behavior
+      stream = await handler.searchAndAnswer(
+        message.content,
+        history,
+        llm,
+        embedding,
+        body.optimizationMode,
+        body.files,
+        body.systemInstructions,
+      );
+    }
 
     const responseStream = new TransformStream();
     const writer = responseStream.writable.getWriter();

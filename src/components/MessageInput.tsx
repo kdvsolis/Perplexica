@@ -14,6 +14,8 @@ const MessageInput = ({
   setFileIds,
   files,
   setFiles,
+  focusMode,
+  setFocusMode,
 }: {
   sendMessage: (
     message:
@@ -29,6 +31,8 @@ const MessageInput = ({
   setFileIds: (fileIds: string[]) => void;
   files: File[];
   setFiles: (files: File[]) => void;
+  focusMode: string;
+  setFocusMode: (mode: string) => void;
 }) => {
   const [copilotEnabled, setCopilotEnabled] = useState(false);
   const [message, setMessage] = useState('');
@@ -69,10 +73,15 @@ const MessageInput = ({
 
   // --- YouTube URL detection and transcript fetch on submit ---
   const handleSend = async () => {
-    const ytRegex = /(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/i;
-    const match = ytRegex.exec(message);
-    if (match) {
-      // Call backend API to get transcript and meta
+    console.log('handleSend called with message:', message);
+    const ytRegex = /(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/gi;
+    const matches = [...message.matchAll(ytRegex)];
+    console.log('YouTube matches found:', matches.map(m => m[0]));
+    if (matches.length > 0) {
+      // Auto-switch focus mode to youtubeSearch
+      if (focusMode !== 'youtubeSearch') setFocusMode('youtubeSearch');
+      // Only fetch transcript and send a single message to chat
+      const match = matches[0];
       try {
         const res = await fetch('/api/youtube-transcript', {
           method: 'POST',
@@ -80,17 +89,17 @@ const MessageInput = ({
           body: JSON.stringify({ url: match[0] }),
         });
         const data = await res.json();
-        if (data.transcript && data.title && data.thumbnail) {
-          // Send a message with YouTube meta for rich bubble
+        if (data && data.transcript && data.title && data.thumbnail) {
           sendMessage({
             content: `Summarize this YouTube video: ${match[0]}\n\nTranscript:\n${data.transcript}`,
             youtubeMeta: { title: data.title, thumbnail: data.thumbnail },
             youtubeTranscript: data.transcript,
           });
-        } else {
-          sendMessage({ content: `Sorry, I couldn't fetch the transcript for this YouTube video: ${match[0]}` });
+        } else if (data && data.error) {
+          sendMessage({ content: `Sorry, I couldn't fetch the transcript for this YouTube video: ${match[0]}\nError: ${data.error}` });
         }
-      } catch {
+      } catch (err) {
+        console.error('Error calling /api/youtube-transcript:', err);
         sendMessage({ content: `Sorry, there was an error fetching the transcript for this YouTube video: ${match[0]}` });
       }
       setMessage('');

@@ -15,7 +15,7 @@
     "@headlessui/react": "^2.2.0",
     "@iarna/toml": "^2.2.5",
     "@icons-pack/react-simple-icons": "^12.3.0",
-    "@langchain/anthropic": "^0.3.24",
+    "@langchain/anthropic": "0.3.20",
     "@langchain/community": "^0.3.49",
     "@langchain/core": "^0.3.66",
     "@langchain/google-genai": "^0.2.15",
@@ -47,8 +47,11 @@
     "react-textarea-autosize": "^8.5.3",
     "sonner": "^1.4.41",
     "tailwind-merge": "^2.2.2",
+    "vtt-to-json": "^0.1.1",
     "winston": "^3.17.0",
     "yet-another-react-lightbox": "^3.17.2",
+    "youtube-captions-scraper": "^2.0.3",
+    "youtube-transcript": "^1.2.1",
     "zod": "^3.22.4"
   },
   "devDependencies": {

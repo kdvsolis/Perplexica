@@ -1,6 +1,14 @@
+
 FROM node:20.18.0-slim AS builder
 
 WORKDIR /home/perplexica
+
+
+# Install Python3 and pip, then always install the latest yt-dlp via pip
+RUN apt-get update && \
+	apt-get install -y python3 python3-pip && \
+	pip3 install -U yt-dlp --break-system-packages && \
+	rm -rf /var/lib/apt/lists/*
 
 COPY package.json yarn.lock ./
 RUN yarn install --frozen-lockfile --network-timeout 600000
@@ -15,9 +23,17 @@ RUN yarn build
 RUN yarn add --dev @vercel/ncc
 RUN yarn ncc build ./src/lib/db/migrate.ts -o migrator
 
+
 FROM node:20.18.0-slim
 
+
 WORKDIR /home/perplexica
+
+# Install Python3 and pip, then always install the latest yt-dlp via pip (runtime)
+RUN apt-get update && \
+	apt-get install -y python3 python3-pip && \
+	pip3 install -U yt-dlp --break-system-packages && \
+	rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /home/perplexica/public ./public
 COPY --from=builder /home/perplexica/.next/static ./public/_next/static

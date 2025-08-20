@@ -57,18 +57,47 @@ const EmptyChatMessageInput = ({
     };
   }, []);
 
+  // --- YouTube URL detection and transcript fetch on submit (copied from MessageInput) ---
+  const handleSend = async () => {
+    const ytRegex = /(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/gi;
+    const matches = [...message.matchAll(ytRegex)];
+    if (matches.length > 0) {
+      // Auto-switch focus mode to youtubeSearch
+      if (focusMode !== 'youtubeSearch') setFocusMode('youtubeSearch');
+      // Only fetch transcript and send a single message to chat
+      const match = matches[0];
+      try {
+        const res = await fetch('/api/youtube-transcript', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: match[0] }),
+        });
+        const data = await res.json();
+        if (data && data.transcript && data.title && data.thumbnail) {
+          sendMessage(`Summarize this YouTube video: ${match[0]}\n\nTranscript:\n${data.transcript}`);
+        } else if (data && data.error) {
+          sendMessage(`Sorry, I couldn't fetch the transcript for this YouTube video: ${match[0]}\nError: ${data.error}`);
+        }
+      } catch {
+        sendMessage(`Sorry, there was an error fetching the transcript for this YouTube video: ${match[0]}`);
+      }
+      setMessage('');
+      return;
+    }
+    sendMessage(message);
+    setMessage('');
+  };
+
   return (
     <form
-      onSubmit={(e) => {
+      onSubmit={async (e) => {
         e.preventDefault();
-        sendMessage(message);
-        setMessage('');
+        await handleSend();
       }}
-      onKeyDown={(e) => {
+      onKeyDown={async (e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
-          sendMessage(message);
-          setMessage('');
+          await handleSend();
         }
       }}
       className="w-full"

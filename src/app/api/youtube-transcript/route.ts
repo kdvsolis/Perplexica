@@ -8,6 +8,7 @@ export async function POST(req: NextRequest) {
   try {
     const result = await getYoutubeTranscript(url);
     if (!result) {
+      console.error('[youtube-transcript] Transcript not available for URL:', url);
       return NextResponse.json({ error: 'Transcript not available' }, { status: 404 });
     }
     // If a question is provided, do simple Q&A over transcript (LLM or simple search)
@@ -27,6 +28,7 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json(result);
   } catch (e: any) {
+    console.error('[youtube-transcript] Exception:', e);
     return NextResponse.json({ error: e.message || 'Failed to fetch transcript' }, { status: 500 });
   }
 }

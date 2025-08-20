@@ -16,6 +16,8 @@ const Chat = ({
   setFileIds,
   files,
   setFiles,
+  focusMode,
+  setFocusMode,
 }: {
   messages: Message[];
   sendMessage: (message: string | { content: string; youtubeMeta?: { title: string; thumbnail: string }; youtubeTranscript?: string }) => void;
@@ -26,6 +28,8 @@ const Chat = ({
   setFileIds: (fileIds: string[]) => void;
   files: File[];
   setFiles: (files: File[]) => void;
+  focusMode: string;
+  setFocusMode: (mode: string) => void;
 }) => {
   const [dividerWidth, setDividerWidth] = useState(0);
   const dividerRef = useRef<HTMLDivElement | null>(null);
@@ -99,6 +103,8 @@ const Chat = ({
             setFileIds={setFileIds}
             files={files}
             setFiles={setFiles}
+            focusMode={focusMode}
+            setFocusMode={setFocusMode}
           />
         </div>
       )}
